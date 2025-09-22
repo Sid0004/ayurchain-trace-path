@@ -1,5 +1,6 @@
 // AyurChain - Blockchain Traceability for Ayurvedic Supply Chain
 import React, { useState, useEffect } from 'react';
+import SupplyChainMap from '@/components/SupplyChainMap';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -134,6 +135,14 @@ const Index = () => {
           </div>
         </div>
       </section>
+
+        {/* Supply Chain Map Section */}
+        <section className="py-12 bg-background">
+          <div className="max-w-4xl mx-auto px-6">
+            <h2 className="text-3xl md:text-4xl font-bold text-center mb-8 text-foreground">Track the Supply Chain Journey</h2>
+            <SupplyChainMap />
+          </div>
+        </section>
 
       {/* Problem Section */}
       <section className="py-20 bg-background">
