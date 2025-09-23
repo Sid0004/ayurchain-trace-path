@@ -4,61 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Search, Package, MapPin, Calendar, User, CheckCircle, AlertTriangle } from 'lucide-react';
-
-interface Batch {
-  id: string;
-  herbName: string;
-  location: string;
-  harvestDate: string;
-  farmerName: string;
-  quantity: string;
-  quality: string;
-  notes: string;
-  createdAt: string;
-}
+import { fetchBatchById, type HerbBatch } from '@/services/ayurchain';
 
 const BatchLookup = () => {
   const [batchId, setBatchId] = useState('');
-  const [batch, setBatch] = useState<Batch | null>(null);
+  const [batch, setBatch] = useState<HerbBatch | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  // Dummy data for demonstration
-  const dummyBatches: Batch[] = [
-    {
-      id: 'AYUR-ASH-082024-KER',
-      herbName: 'Ashwagandha',
-      location: 'Kerala, India',
-      harvestDate: '2024-08-15',
-      farmerName: 'Rajesh Kumar',
-      quantity: '50',
-      quality: 'Premium',
-      notes: 'Organic cultivation, no pesticides used',
-      createdAt: '2024-08-15T10:30:00Z'
-    },
-    {
-      id: 'AYUR-TUR-082024-TN',
-      herbName: 'Turmeric',
-      location: 'Tamil Nadu, India',
-      harvestDate: '2024-08-20',
-      farmerName: 'Priya Sharma',
-      quantity: '75',
-      quality: 'Standard',
-      notes: 'Traditional farming methods',
-      createdAt: '2024-08-20T14:15:00Z'
-    },
-    {
-      id: 'AYUR-TUL-082024-HP',
-      herbName: 'Tulsi (Holy Basil)',
-      location: 'Himachal Pradesh, India',
-      harvestDate: '2024-08-25',
-      farmerName: 'Amit Singh',
-      quantity: '30',
-      quality: 'Premium',
-      notes: 'High altitude cultivation, superior quality',
-      createdAt: '2024-08-25T09:45:00Z'
-    }
-  ];
 
   const handleSearch = async () => {
     if (!batchId.trim()) {
@@ -70,16 +22,12 @@ const BatchLookup = () => {
     setError('');
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const foundBatch = dummyBatches.find(b => b.id === batchId);
-      
-      if (foundBatch) {
-        setBatch(foundBatch);
-      } else {
+      const res = await fetchBatchById(batchId);
+      if (!res) {
         setError('Batch not found. Please check the batch ID and try again.');
         setBatch(null);
+      } else {
+        setBatch(res);
       }
     } catch (err) {
       setError('Error searching for batch. Please try again.');
@@ -128,12 +76,7 @@ const BatchLookup = () => {
                   </div>
                 </div>
                 <div className="text-sm text-gray-600">
-                  <p><strong>Available demo batch IDs:</strong></p>
-                  <ul className="list-disc list-inside mt-1 space-y-1">
-                    <li>AYUR-ASH-082024-KER (Ashwagandha)</li>
-                    <li>AYUR-TUR-082024-TN (Turmeric)</li>
-                    <li>AYUR-TUL-082024-HP (Tulsi)</li>
-                  </ul>
+                  <p>Enter the exact QR Batch ID.</p>
                 </div>
               </div>
             </CardContent>
@@ -166,22 +109,22 @@ const BatchLookup = () => {
                     <div className="flex items-center">
                       <Package className="w-5 h-5 mr-3 text-green-600" />
                       <div>
-                        <span className="font-medium">Herb Name:</span>
-                        <span className="ml-2">{batch.herbName}</span>
+                        <span className="font-medium">Species:</span>
+                        <span className="ml-2">{batch.species}</span>
                       </div>
                     </div>
                     <div className="flex items-center">
                       <User className="w-5 h-5 mr-3 text-green-600" />
                       <div>
-                        <span className="font-medium">Farmer:</span>
-                        <span className="ml-2">{batch.farmerName}</span>
+                        <span className="font-medium">Farmer ID:</span>
+                        <span className="ml-2">{batch.farmerID}</span>
                       </div>
                     </div>
                     <div className="flex items-center">
                       <MapPin className="w-5 h-5 mr-3 text-green-600" />
                       <div>
                         <span className="font-medium">Origin:</span>
-                        <span className="ml-2">{batch.location}</span>
+                        <span className="ml-2">{batch.cultivationLocation}</span>
                       </div>
                     </div>
                   </div>
@@ -196,29 +139,18 @@ const BatchLookup = () => {
                     <div className="flex items-center">
                       <Package className="w-5 h-5 mr-3 text-green-600" />
                       <div>
-                        <span className="font-medium">Quantity:</span>
-                        <span className="ml-2">{batch.quantity} kg</span>
+                        <span className="font-medium">Current Owner:</span>
+                        <span className="ml-2">{batch.currentOwner}</span>
                       </div>
                     </div>
                     <div className="flex items-center">
-                      <span className="font-medium">Quality Grade:</span>
-                      <span className={`ml-2 px-3 py-1 rounded-full text-sm font-medium ${
-                        batch.quality === 'Premium' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {batch.quality}
-                      </span>
+                      <span className="font-medium">Owner History Entries:</span>
+                      <span className="ml-2">{Array.isArray(batch.ownerHistory) ? batch.ownerHistory.length : 0}</span>
                     </div>
                   </div>
                 </div>
                 
-                {batch.notes && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <span className="font-medium">Additional Notes:</span>
-                    <p className="text-gray-600 mt-1">{batch.notes}</p>
-                  </div>
-                )}
+                {/* Add more details from processingSteps if desired */}
 
                 <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center">

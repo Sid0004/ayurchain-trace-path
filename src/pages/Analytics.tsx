@@ -1,8 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart3, TrendingUp, Users, Package } from 'lucide-react';
+import { fetchBatches, type HerbBatch } from '@/services/ayurchain';
 
 const Analytics = () => {
+  const [batches, setBatches] = useState<HerbBatch[]>([]);
+  useEffect(() => {
+    fetchBatches().then(setBatches).catch(() => setBatches([]));
+  }, []);
+  const uniqueFarmers = new Set(batches.map(b => b.farmerID));
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-6 py-12">
@@ -20,8 +26,8 @@ const Analytics = () => {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">No batches tracked yet</p>
+              <div className="text-2xl font-bold">{batches.length}</div>
+              <p className="text-xs text-muted-foreground">Live from backend</p>
             </CardContent>
           </Card>
 
@@ -31,8 +37,8 @@ const Analytics = () => {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">No stakeholders registered</p>
+              <div className="text-2xl font-bold">{uniqueFarmers.size}</div>
+              <p className="text-xs text-muted-foreground">Unique farmers (by ID)</p>
             </CardContent>
           </Card>
 
@@ -42,8 +48,8 @@ const Analytics = () => {
               <BarChart3 className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">No transactions recorded</p>
+              <div className="text-2xl font-bold">--</div>
+              <p className="text-xs text-muted-foreground">Hook to ledger next</p>
             </CardContent>
           </Card>
 
@@ -54,7 +60,7 @@ const Analytics = () => {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">--</div>
-              <p className="text-xs text-muted-foreground">Awaiting data</p>
+              <p className="text-xs text-muted-foreground">Hook to QA data next</p>
             </CardContent>
           </Card>
         </div>
@@ -65,9 +71,7 @@ const Analytics = () => {
               <CardTitle>Supply Chain Flow</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                Chart visualization will appear here once data is available
-              </div>
+              <div className="h-64 flex items-center justify-center text-muted-foreground">Charts can be wired to live data.</div>
             </CardContent>
           </Card>
 
@@ -76,9 +80,7 @@ const Analytics = () => {
               <CardTitle>Quality Trends</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-64 flex items-center justify-center text-muted-foreground">
-                Quality metrics will be displayed here
-              </div>
+              <div className="h-64 flex items-center justify-center text-muted-foreground">Quality metrics TBD.</div>
             </CardContent>
           </Card>
         </div>

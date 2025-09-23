@@ -2,21 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { TrendingUp, Package, Users, AlertTriangle, CheckCircle } from 'lucide-react';
-
-interface Batch {
-  id: string;
-  herbName: string;
-  location: string;
-  harvestDate: string;
-  farmerName: string;
-  quantity: string;
-  quality: string;
-  notes: string;
-  createdAt: string;
-}
+import { Link } from 'react-router-dom';
+import { fetchBatches, type HerbBatch } from '@/services/ayurchain';
 
 const RegulatorDashboard = () => {
-  const [batches, setBatches] = useState<Batch[]>([]);
+  const [batches, setBatches] = useState<HerbBatch[]>([]);
   const [stats, setStats] = useState({
     totalBatches: 0,
     totalFarmers: 0,
@@ -24,99 +14,63 @@ const RegulatorDashboard = () => {
     qualityIssues: 0
   });
 
-  // Load batches from localStorage and add dummy data
   useEffect(() => {
-    const savedBatches = localStorage.getItem('ayurchain-batches');
-    let allBatches: Batch[] = [];
-    
-    if (savedBatches) {
-      allBatches = JSON.parse(savedBatches);
-    }
-    
-    // Add dummy data if no batches exist
-    if (allBatches.length === 0) {
-      const dummyBatches: Batch[] = [
-        {
-          id: 'AYUR-ASH-082024-KER',
-          herbName: 'Ashwagandha',
-          location: 'Kerala, India',
-          harvestDate: '2024-08-15',
-          farmerName: 'Rajesh Kumar',
-          quantity: '50',
-          quality: 'Premium',
-          notes: 'Organic cultivation, no pesticides used',
-          createdAt: '2024-08-15T10:30:00Z'
-        },
-        {
-          id: 'AYUR-TUR-082024-TN',
-          herbName: 'Turmeric',
-          location: 'Tamil Nadu, India',
-          harvestDate: '2024-08-20',
-          farmerName: 'Priya Sharma',
-          quantity: '75',
-          quality: 'Standard',
-          notes: 'Traditional farming methods',
-          createdAt: '2024-08-20T14:15:00Z'
-        },
-        {
-          id: 'AYUR-TUL-082024-HP',
-          herbName: 'Tulsi (Holy Basil)',
-          location: 'Himachal Pradesh, India',
-          harvestDate: '2024-08-25',
-          farmerName: 'Amit Singh',
-          quantity: '30',
-          quality: 'Premium',
-          notes: 'High altitude cultivation, superior quality',
-          createdAt: '2024-08-25T09:45:00Z'
-        }
-      ];
-      allBatches = dummyBatches;
-      localStorage.setItem('ayurchain-batches', JSON.stringify(dummyBatches));
-    }
-    
-    setBatches(allBatches);
-    
-    // Calculate stats
-    const uniqueFarmers = new Set(allBatches.map((b: Batch) => b.farmerName));
-    const qualityIssues = allBatches.filter((b: Batch) => b.quality === 'Standard').length;
-    
-    setStats({
-      totalBatches: allBatches.length,
-      totalFarmers: uniqueFarmers.size,
-      complianceRate: Math.round((allBatches.length - qualityIssues) / allBatches.length * 100) || 100,
-      qualityIssues: qualityIssues
-    });
+    fetchBatches()
+      .then((allBatches) => {
+        setBatches(allBatches);
+        const uniqueFarmers = new Set(allBatches.map((b: HerbBatch) => b.farmerID));
+        const qualityIssues = 0; // no quality field in API sample
+        setStats({
+          totalBatches: allBatches.length,
+          totalFarmers: uniqueFarmers.size,
+          complianceRate: 100,
+          qualityIssues: qualityIssues
+        });
+      })
+      .catch(() => {
+        setBatches([]);
+        setStats({ totalBatches: 0, totalFarmers: 0, complianceRate: 0, qualityIssues: 0 });
+      });
   }, []);
 
-  // Dummy data for charts
-  const herbsByType = [
-    { name: 'Ashwagandha', value: 35, color: '#10B981' },
-    { name: 'Turmeric', value: 28, color: '#F59E0B' },
-    { name: 'Tulsi', value: 20, color: '#3B82F6' },
-    { name: 'Brahmi', value: 12, color: '#8B5CF6' },
-    { name: 'Neem', value: 5, color: '#EF4444' }
-  ];
+  // Live data aggregates
+  const speciesColorPalette = ['#10B981', '#F59E0B', '#3B82F6', '#8B5CF6', '#EF4444', '#06B6D4', '#A3E635', '#F472B6'];
+  const speciesCounts = batches.reduce<Record<string, number>>((acc, b) => {
+    const key = b.species || 'Unknown';
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const herbsByType = Object.entries(speciesCounts).map(([name, value], idx) => ({ name, value, color: speciesColorPalette[idx % speciesColorPalette.length] }));
 
-  const supplyChainFlow = [
-    { month: 'Jan', batches: 45, compliance: 98 },
-    { month: 'Feb', batches: 52, compliance: 96 },
-    { month: 'Mar', batches: 48, compliance: 99 },
-    { month: 'Apr', batches: 61, compliance: 97 },
-    { month: 'May', batches: 55, compliance: 98 },
-    { month: 'Jun', batches: 67, compliance: 99 }
-  ];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const flowMap = new Map<string, { month: string; batches: number; compliance: number }>();
+  months.forEach(m => flowMap.set(m, { month: m, batches: 0, compliance: 100 }));
+  batches.forEach(b => {
+    const d = new Date(b.createdAt || b.harvestDate);
+    const m = months[d.getMonth()];
+    const item = flowMap.get(m);
+    if (item) item.batches += 1;
+  });
+  const supplyChainFlow = Array.from(flowMap.values());
 
+  // Simple compliance proxies from available fields
+  const total = batches.length || 1;
+  const withOwnerHistory = batches.filter(b => Array.isArray(b.ownerHistory) && b.ownerHistory.length > 0).length;
+  const withProcessing = batches.filter(b => Array.isArray(b.processingSteps) && b.processingSteps.length > 0).length;
+  const withEssentialFields = batches.filter(b => b.cultivationLocation && b.harvestDate && b.currentOwner).length;
   const complianceData = [
-    { category: 'Quality Standards', value: 98 },
-    { category: 'Documentation', value: 95 },
-    { category: 'Traceability', value: 100 },
-    { category: 'Safety Protocols', value: 97 }
+    { category: 'Traceability', value: Math.round((withOwnerHistory / total) * 100) },
+    { category: 'Processing Logged', value: Math.round((withProcessing / total) * 100) },
+    { category: 'Data Completeness', value: Math.round((withEssentialFields / total) * 100) },
   ];
 
   // Get recent batches for the table
   const recentBatches = batches.slice(-4).map(batch => ({
-    ...batch,
-    status: batch.quality === 'Premium' ? 'Compliant' : 'Under Review'
+    id: batch.batchID,
+    herbName: batch.species,
+    farmerName: batch.farmerID,
+    createdAt: batch.createdAt,
+    status: 'Compliant'
   }));
 
   return (
@@ -260,25 +214,27 @@ const RegulatorDashboard = () => {
                 <div className="space-y-4">
                   {recentBatches.length > 0 ? (
                     recentBatches.map((batch) => (
-                      <div key={batch.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <p className="font-medium">{batch.herbName}</p>
-                          <p className="text-sm text-gray-600">ID: {batch.id}</p>
-                          <p className="text-sm text-gray-600">Farmer: {batch.farmerName}</p>
+                      <Link key={batch.id} to={`/batch/${batch.id}`} className="block">
+                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          <div>
+                            <p className="font-medium">{batch.herbName}</p>
+                            <p className="text-sm text-gray-600">ID: {batch.id}</p>
+                            <p className="text-sm text-gray-600">Farmer: {batch.farmerName}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              batch.status === 'Compliant' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {batch.status}
+                            </span>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {new Date(batch.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            batch.status === 'Compliant' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {batch.status}
-                          </span>
-                          <p className="text-sm text-gray-600 mt-1">
-                            {new Date(batch.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
+                      </Link>
                     ))
                   ) : (
                     <div className="text-center py-8 text-gray-500">
@@ -291,14 +247,14 @@ const RegulatorDashboard = () => {
             </Card>
           </div>
 
-          {/* Additional Stats */}
+          {/* Additional Stats (derived from live data) */}
           <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="text-center">
               <CardContent className="p-6">
                 <TrendingUp className="w-8 h-8 mx-auto mb-2 text-green-600" />
                 <h3 className="font-semibold text-lg">Supply Chain Efficiency</h3>
-                <p className="text-2xl font-bold text-green-600">94.2%</p>
-                <p className="text-sm text-gray-600">Average processing time</p>
+                <p className="text-2xl font-bold text-green-600">{Math.min(100, Math.round((Math.max(...supplyChainFlow.map(s => s.batches), 0) / (stats.totalBatches || 1)) * 100))}%</p>
+                <p className="text-sm text-gray-600">Peak month throughput</p>
               </CardContent>
             </Card>
 
@@ -306,8 +262,8 @@ const RegulatorDashboard = () => {
               <CardContent className="p-6">
                 <CheckCircle className="w-8 h-8 mx-auto mb-2 text-blue-600" />
                 <h3 className="font-semibold text-lg">Quality Assurance</h3>
-                <p className="text-2xl font-bold text-blue-600">98.7%</p>
-                <p className="text-sm text-gray-600">Pass rate for quality tests</p>
+                <p className="text-2xl font-bold text-blue-600">{Math.round((withProcessing / total) * 100)}%</p>
+                <p className="text-sm text-gray-600">Batches with processing data</p>
               </CardContent>
             </Card>
 
@@ -315,8 +271,8 @@ const RegulatorDashboard = () => {
               <CardContent className="p-6">
                 <Users className="w-8 h-8 mx-auto mb-2 text-purple-600" />
                 <h3 className="font-semibold text-lg">Stakeholder Satisfaction</h3>
-                <p className="text-2xl font-bold text-purple-600">96.4%</p>
-                <p className="text-sm text-gray-600">Platform adoption rate</p>
+                <p className="text-2xl font-bold text-purple-600">{Math.min(100, Math.round((stats.totalFarmers / (stats.totalBatches || 1)) * 100))}%</p>
+                <p className="text-sm text-gray-600">Farmers vs. batches ratio</p>
               </CardContent>
             </Card>
           </div>

@@ -11,9 +11,7 @@ const Header = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
-   
     { path: '/batch-lookup', label: 'Batch Lookup', icon: Search },
-    { path: '/consumer-portal', label: 'Consumer Portal', icon: null },
     { path: '/regulator-dashboard', label: 'Regulator Dashboard', icon: BarChart3 },
     { path: '/about', label: 'About', icon: null },
     { path: '/contact', label: 'Contact', icon: null },

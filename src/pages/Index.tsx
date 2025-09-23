@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import heroBackground from '@/assets/hero-background.jpg';
 import herbsCollection from '@/assets/herbs-collection.jpg';
 import labTesting from '@/assets/lab-testing.jpg';
+import { fetchBatches, type HerbBatch } from '@/services/ayurchain';
+import { useNavigate } from 'react-router-dom';
 
 // Icons as SVG components
 const LeafIcon = () => <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,10 +45,9 @@ const DeviceIcon = () => <svg className="w-8 h-8" fill="none" stroke="currentCol
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
   </svg>;
 const Index = () => {
-  const [demoId, setDemoId] = useState('AYUR-ASH-082024-KER');
-  const [showDemo, setShowDemo] = useState(false);
+  const navigate = useNavigate();
   const [counters, setCounters] = useState({
-    transparency: 0,
+    transparency: 100,
     batches: 0,
     stakeholders: 0
   });
@@ -68,20 +69,15 @@ const Index = () => {
     return () => observer.disconnect();
   }, []);
 
-  // Counter animation
+  // Load live counters from backend
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setCounters({
-        transparency: 99.9,
-        batches: 0,
-        stakeholders: 0
-      });
-    }, 1000);
-    return () => clearTimeout(timer);
+    fetchBatches()
+      .then((batches: HerbBatch[]) => {
+        const uniqueFarmers = new Set(batches.map(b => b.farmerID));
+        setCounters({ transparency: 100, batches: batches.length, stakeholders: uniqueFarmers.size });
+      })
+      .catch(() => {});
   }, []);
-  const handleDemoTrace = () => {
-    setShowDemo(true);
-  };
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({
       behavior: 'smooth'
@@ -104,8 +100,8 @@ const Index = () => {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center fade-in-up">
-            <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-4 font-semibold transition-all duration-300 hover:scale-105" onClick={() => scrollToSection('demo')}>
-              Trace a Product (Demo)
+            <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-4 font-semibold transition-all duration-300 hover:scale-105" onClick={() => navigate('/batch-lookup')}>
+              Lookup a Batch
             </Button>
             <Button size="lg" variant="outline" onClick={() => scrollToSection('solution')} className="border-white hover:bg-white text-lg px-8 py-4 font-semibold transition-all duration-300 hover:scale-105 text-slate-950">
               Learn How It Works
@@ -249,78 +245,14 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Interactive Demo Section */}
-      <section id="demo" className="py-20 bg-background">
-        <div className="max-w-4xl mx-auto px-6">
-          <div className="text-center mb-12 fade-in-up">
-            <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
-              See Transparency in Action
-            </h2>
-            <p className="text-xl text-muted-foreground">
-              Enter the demo Batch ID below to see a simulated traceability report.
-            </p>
-          </div>
-
-          <div className="bg-card rounded-lg p-8 card-shadow fade-in-up">
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              <Input value={demoId} onChange={e => setDemoId(e.target.value)} placeholder="Enter Batch ID" className="flex-1 text-lg p-4" />
-              <Button onClick={handleDemoTrace} size="lg" className="nature-gradient text-white hover:opacity-90 px-8 font-semibold">
-                Trace Product
-              </Button>
-            </div>
-
-            {showDemo && <div className="space-y-6 animate-fade-in">
-                <h3 className="text-2xl font-semibold text-center mb-8">
-                  Journey of Batch: {demoId}
-                </h3>
-                
-                <div className="space-y-6">
-                  <div className="flex items-start space-x-4 p-4 bg-muted/20 rounded-lg">
-                    <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center flex-shrink-0">
-                      <LeafIcon />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Harvested in Kerala</h4>
-                      <p className="text-muted-foreground">August 15, 2024 - Organic Ashwagandha roots collected by certified farmer Ravi Kumar</p>
-                      <p className="text-sm text-muted-foreground mt-1">GPS: 10.8505° N, 76.2711° E</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-4 p-4 bg-muted/20 rounded-lg">
-                    <div className="w-12 h-12 bg-secondary text-primary-foreground rounded-full flex items-center justify-center flex-shrink-0">
-                      <FactoryIcon />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Processed in Bangalore</h4>
-                      <p className="text-muted-foreground">August 18, 2024 - Cleaned, dried, and powdered at AyurTech Processing Unit</p>
-                      <p className="text-sm text-muted-foreground mt-1">Quality Grade: A+ | Moisture: 8.2%</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-4 p-4 bg-muted/20 rounded-lg">
-                    <div className="w-12 h-12 bg-accent text-accent-foreground rounded-full flex items-center justify-center flex-shrink-0">
-                      <BeakerIcon />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Lab Verified</h4>
-                      <p className="text-muted-foreground">August 20, 2024 - Tested at NABL Certified Lab Mumbai</p>
-                      <p className="text-sm text-muted-foreground mt-1">Purity: 99.8% | Withanolides: 5.2% | Heavy Metals: Within limits</p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-4 p-4 bg-muted/20 rounded-lg">
-                    <div className="w-12 h-12 bg-primary text-primary-foreground rounded-full flex items-center justify-center flex-shrink-0">
-                      <ShieldIcon />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Consumer Ready</h4>
-                      <p className="text-muted-foreground">August 22, 2024 - Packaged and ready for distribution</p>
-                      <p className="text-sm text-muted-foreground mt-1">Batch verified ✓ | Blockchain hash: 0x7a8b9c...</p>
-                    </div>
-                  </div>
-                </div>
-              </div>}
-          </div>
+      {/* Replace demo with CTA to live lookup */}
+      <section className="py-20 bg-background">
+        <div className="max-w-4xl mx-auto px-6 text-center">
+          <h2 className="text-4xl md:text-5xl font-bold text-foreground mb-6">See Transparency in Action</h2>
+          <p className="text-xl text-muted-foreground mb-6">Use the live Batch Lookup to fetch authentic data from the backend.</p>
+          <Button size="lg" className="nature-gradient text-white hover:opacity-90 px-8 font-semibold" onClick={() => navigate('/batch-lookup')}>
+            Go to Batch Lookup
+          </Button>
         </div>
       </section>
 

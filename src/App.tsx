@@ -7,8 +7,8 @@ import { ThemeProvider } from "next-themes";
 import Header from "./components/Header";
 import Index from "./pages/Index";
 import BatchLookup from "./pages/BatchLookup";
-import ConsumerPortal from "./pages/ConsumerPortal";
 import RegulatorDashboard from "./pages/RegulatorDashboard";
+import BatchDetails from "./pages/BatchDetails";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
@@ -26,8 +26,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/batch-lookup" element={<BatchLookup />} />
-            <Route path="/consumer-portal" element={<ConsumerPortal />} />
             <Route path="/regulator-dashboard" element={<RegulatorDashboard />} />
+            <Route path="/batch/:id" element={<BatchDetails />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
